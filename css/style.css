@@ -1,0 +1,567 @@
+/* ============================================================
+   NAVETTE DU PERSONNEL — LYCÉE FRANÇAIS DE BUCAREST
+   Design : élégant, institutionnel, bilingue FR/RO
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
+
+/* ---- Variables ---- */
+:root {
+  --bleu: #1a3560;
+  --bleu-clair: #2c5282;
+  --or: #c9a84c;
+  --or-clair: #e8c97a;
+  --blanc: #f9f7f4;
+  --gris-clair: #edeae4;
+  --gris: #9a9590;
+  --texte: #1c1a17;
+  --rouge: #b91c1c;
+  --vert: #15803d;
+  --ombre: 0 4px 24px rgba(26,53,96,0.10);
+  --rayon: 10px;
+  --transition: 0.22s ease;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--blanc);
+  color: var(--texte);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ---- En-tête ---- */
+.header {
+  background: var(--bleu);
+  color: white;
+  padding: 0 2rem;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.header-logo {
+  width: 36px;
+  height: 36px;
+  background: var(--or);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--bleu);
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.2rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.header-subtitle {
+  font-size: 0.72rem;
+  opacity: 0.7;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* ---- Boutons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.2rem;
+  border-radius: var(--rayon);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--bleu);
+  color: white;
+}
+.btn-primary:hover { background: var(--bleu-clair); transform: translateY(-1px); box-shadow: var(--ombre); }
+
+.btn-gold {
+  background: var(--or);
+  color: var(--bleu);
+  font-weight: 600;
+}
+.btn-gold:hover { background: var(--or-clair); transform: translateY(-1px); box-shadow: var(--ombre); }
+
+.btn-danger {
+  background: #fee2e2;
+  color: var(--rouge);
+  border: 1px solid #fca5a5;
+}
+.btn-danger:hover { background: #fca5a5; }
+
+.btn-ghost {
+  background: transparent;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.35);
+  font-size: 0.82rem;
+  padding: 0.4rem 0.9rem;
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.12); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--bleu);
+  border: 1.5px solid var(--bleu);
+}
+.btn-outline:hover { background: var(--bleu); color: white; }
+
+.btn-sm { padding: 0.35rem 0.8rem; font-size: 0.8rem; }
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ---- Page login ---- */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, var(--bleu) 0%, #0f2040 100%);
+}
+
+.login-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.login-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2.5rem 2.2rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 1.8rem;
+}
+
+.login-logo-circle {
+  width: 72px;
+  height: 72px;
+  background: var(--bleu);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.8rem;
+}
+
+.login-logo-circle svg { width: 36px; height: 36px; fill: var(--or); }
+
+.login-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: var(--bleu);
+  margin-bottom: 0.2rem;
+}
+
+.login-subtitle {
+  font-size: 0.85rem;
+  color: var(--gris);
+  margin-bottom: 1.8rem;
+}
+
+/* ---- Formulaires ---- */
+.form-group { margin-bottom: 1.1rem; }
+
+.form-label {
+  display: block;
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--texte);
+  margin-bottom: 0.35rem;
+  letter-spacing: 0.02em;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border: 1.5px solid var(--gris-clair);
+  border-radius: var(--rayon);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.93rem;
+  color: var(--texte);
+  background: var(--blanc);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: var(--bleu-clair);
+  box-shadow: 0 0 0 3px rgba(44,82,130,0.12);
+}
+
+.form-input::placeholder { color: var(--gris); }
+
+/* ---- Messages ---- */
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: var(--rayon);
+  font-size: 0.88rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.alert-info { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.alert-warning { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+
+/* ---- Contenu principal ---- */
+.main-content {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+/* ---- Cartes ---- */
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: var(--ombre);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.card-header {
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--gris-clair);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--bleu);
+}
+
+.card-body { padding: 1.5rem; }
+
+/* ---- Compteur de places ---- */
+.places-counter {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.counter-box {
+  text-align: center;
+  padding: 1.2rem 0.5rem;
+  border-radius: var(--rayon);
+  background: var(--gris-clair);
+}
+
+.counter-box.available { background: #dcfce7; }
+.counter-box.occupied { background: #fee2e2; }
+.counter-box.total { background: #dbeafe; }
+
+.counter-number {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.4rem;
+  font-weight: 600;
+  line-height: 1;
+  margin-bottom: 0.3rem;
+}
+
+.counter-box.available .counter-number { color: var(--vert); }
+.counter-box.occupied .counter-number { color: var(--rouge); }
+.counter-box.total .counter-number { color: var(--bleu); }
+
+.counter-label { font-size: 0.78rem; color: var(--gris); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ---- Barre de progression ---- */
+.progress-bar {
+  height: 8px;
+  background: var(--gris-clair);
+  border-radius: 99px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--bleu);
+  border-radius: 99px;
+  transition: width 0.5s ease;
+}
+
+.progress-fill.full { background: var(--rouge); }
+.progress-fill.near-full { background: #f59e0b; }
+
+/* ---- Zone de réservation ---- */
+.reservation-zone {
+  padding: 1.5rem;
+  border-radius: var(--rayon);
+  border: 2px dashed var(--gris-clair);
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.reservation-zone.has-reservation {
+  border-color: var(--vert);
+  background: #f0fdf4;
+  border-style: solid;
+}
+
+.reservation-zone.closed {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+/* ---- Liste des réservations ---- */
+.reservation-list { list-style: none; }
+
+.reservation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--gris-clair);
+  gap: 1rem;
+}
+
+.reservation-item:last-child { border-bottom: none; }
+
+.reservation-number {
+  width: 28px;
+  height: 28px;
+  background: var(--bleu);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.reservation-name { font-weight: 500; flex: 1; }
+.reservation-date { font-size: 0.78rem; color: var(--gris); }
+.reservation-me { background: var(--or); color: var(--bleu); font-size: 0.72rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 99px; }
+
+/* ---- Semaine info ---- */
+.week-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  color: var(--gris);
+  margin-bottom: 0.5rem;
+}
+
+.week-date {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--bleu);
+}
+
+/* ---- Tableau admin ---- */
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+thead th {
+  background: var(--bleu);
+  color: white;
+  padding: 0.7rem 1rem;
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+tbody tr { border-bottom: 1px solid var(--gris-clair); transition: background var(--transition); }
+tbody tr:hover { background: #f8f7f5; }
+tbody td { padding: 0.75rem 1rem; }
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-admin { background: #ede9fe; color: #6d28d9; }
+.badge-personnel { background: var(--gris-clair); color: var(--gris); }
+
+/* ---- Import zone ---- */
+.import-zone {
+  border: 2px dashed var(--gris-clair);
+  border-radius: var(--rayon);
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.import-zone:hover, .import-zone.dragover {
+  border-color: var(--bleu-clair);
+  background: #eff6ff;
+}
+
+.import-zone input[type="file"] { display: none; }
+
+.import-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 0.8rem;
+  background: var(--gris-clair);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- Spinner ---- */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Modal ---- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 1rem;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.modal-overlay.visible { opacity: 1; }
+
+.modal {
+  background: white;
+  border-radius: 14px;
+  padding: 2rem;
+  max-width: 440px;
+  width: 100%;
+  transform: scale(0.96);
+  transition: transform var(--transition);
+}
+.modal-overlay.visible .modal { transform: scale(1); }
+
+.modal-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--bleu);
+  margin-bottom: 0.8rem;
+}
+
+.modal-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: flex-end; }
+
+/* ---- Nav tabs admin ---- */
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--gris-clair); margin-bottom: 1.5rem; }
+
+.tab {
+  padding: 0.7rem 1.3rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--gris);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all var(--transition);
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
+.tab:hover { color: var(--bleu); }
+.tab.active { color: var(--bleu); border-bottom-color: var(--bleu); font-weight: 600; }
+
+/* ---- Footer ---- */
+.footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.78rem;
+  color: var(--gris);
+  border-top: 1px solid var(--gris-clair);
+  margin-top: 3rem;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 600px) {
+  .main-content { padding: 1rem; }
+  .places-counter { grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+  .counter-number { font-size: 1.8rem; }
+  .header-title { font-size: 1rem; }
+  .header-subtitle { display: none; }
+  .card-body { padding: 1rem; }
+}

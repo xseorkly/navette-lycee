@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Navette LFAdN — Réservations</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .week-tabs{display:flex;gap:0.5rem;margin-bottom:1.5rem;flex-wrap:wrap}
+    .week-tab{padding:0.5rem 1.2rem;border-radius:99px;font-size:0.85rem;font-weight:500;cursor:pointer;border:1.5px solid var(--gris-clair);background:white;color:var(--gris);transition:all 0.2s}
+    .week-tab.active{background:var(--bleu);color:white;border-color:var(--bleu)}
+    .day-section{margin-bottom:1.5rem}
+    .day-title{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:600;color:var(--bleu);margin-bottom:0.75rem;padding-bottom:0.4rem;border-bottom:2px solid var(--gris-clair)}
+    .navette-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.75rem}
+    .navette-card{background:white;border-radius:10px;box-shadow:var(--ombre);overflow:hidden;border:2px solid transparent;transition:border-color 0.2s}
+    .navette-card.reserved{border-color:var(--vert)}
+    .navette-card.full{border-color:#fca5a5}
+    .nav-header{background:var(--bleu);color:white;padding:0.6rem 0.9rem}
+    .nav-header.reserved{background:var(--vert)}
+    .nav-name{font-size:0.9rem;font-weight:600}
+    .nav-time{font-size:0.78rem;opacity:0.8}
+    .nav-body{padding:0.75rem}
+    .nav-bar{height:5px;background:var(--gris-clair);border-radius:99px;margin:0.4rem 0;overflow:hidden}
+    .nav-bar-fill{height:100%;border-radius:99px;background:var(--bleu);transition:width 0.3s}
+    .nav-bar-fill.near{background:#f59e0b}
+    .nav-bar-fill.full{background:var(--rouge)}
+    .nav-places{font-size:0.75rem;color:var(--gris);margin-bottom:0.5rem}
+    .nav-btn{width:100%;padding:0.4rem;border-radius:6px;font-size:0.78rem;font-weight:600;border:none;cursor:pointer;transition:all 0.2s}
+    .nav-btn.reserve{background:#dbeafe;color:var(--bleu)}
+    .nav-btn.reserve:hover{background:var(--bleu);color:white}
+    .nav-btn.reserved{background:#dcfce7;color:var(--vert)}
+    .nav-btn.full-btn{background:#fee2e2;color:var(--rouge);cursor:not-allowed}
+    .nav-btn.past{background:var(--gris-clair);color:var(--gris);cursor:not-allowed}
+    .no-navettes{color:var(--gris);font-size:0.88rem;font-style:italic;padding:0.5rem 0}
+    .my-res-item{display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid var(--gris-clair);font-size:0.85rem;gap:0.5rem}
+    .my-res-item:last-child{border-bottom:none}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-brand">
+    <img src="img/logo-lfadn.png" alt="LFAdN" style="height:38px;width:38px;object-fit:contain;border-radius:4px;">
+    <div>
+      <div class="header-title">Navette du Personnel</div>
+      <div class="header-subtitle">Lycée Français Anna de Noailles — Bucarest</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="toggleLang()" id="btn-lang">Română</button>
+    <button class="btn btn-ghost" onclick="showChangePassword()" style="font-size:0.8rem;">🔑</button>
+    <button class="btn btn-ghost" onclick="logout()" id="btn-logout">Déconnexion</button>
+  </div>
+</header>
+
+<main class="main-content">
+  <div style="margin-bottom:1.2rem;">
+    <h1 style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:600;color:var(--bleu);">
+      Bonjour, <span id="user-name"></span>
+    </h1>
+  </div>
+
+  <div class="week-tabs" id="week-tabs"></div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Navettes disponibles</span>
+    </div>
+    <div class="card-body" id="navettes-grid">
+      <div style="text-align:center;padding:2rem;color:var(--gris);">Chargement...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Mes réservations</span>
+    </div>
+    <div class="card-body" id="my-reservations">
+      <p style="color:var(--gris);text-align:center;">Aucune réservation.</p>
+    </div>
+  </div>
+</main>
+
+<!-- Modal annulation -->
+<div class="modal-overlay" id="modal-cancel" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">Annuler cette réservation ?</div>
+    <p style="color:var(--gris);font-size:0.9rem;" id="modal-cancel-desc"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('cancel')">Non</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmCancel()">Oui, annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal changer mot de passe -->
+<div class="modal-overlay" id="modal-pwd" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">Changer mon mot de passe</div>
+    <div class="form-group" style="margin-top:0.5rem;">
+      <label class="form-label">Nouveau mot de passe</label>
+      <input type="password" class="form-input" id="input-new-pwd" placeholder="Nouveau mot de passe">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirmer</label>
+      <input type="password" class="form-input" id="input-confirm-pwd" placeholder="Confirmez">
+    </div>
+    <div id="pwd-alert" style="display:none;" class="alert"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('pwd')">Annuler</button>
+      <button class="btn btn-primary btn-sm" onclick="handleChangePassword()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" style="position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bleu);color:white;padding:0.75rem 1.5rem;border-radius:99px;font-size:0.88rem;font-weight:500;z-index:300;transition:transform 0.3s ease;box-shadow:0 4px 20px rgba(0,0,0,0.2);pointer-events:none;white-space:nowrap;"></div>
+
+<div class="footer">&copy; 2025 Lycée Français Anna de Noailles — Bucarest</div>
+
+<script src="js/config.js"></script>
+<script src="js/translations.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/reservations.js"></script>
+<script>
+  let currentUser = requireAuth();
+  let availableWeeks = getAvailableWeeks();
+  let selectedWeekIdx = 0;
+  let cancelTargetId = null;
+  let allNavettes = [];
+  let allReservations = [];
+  let myReservations = [];
+
+  document.getElementById('user-name').textContent = currentUser.full_name;
+  document.getElementById('btn-logout').textContent = t('logout');
+  document.getElementById('btn-lang').textContent = currentLang === 'fr' ? 'Română' : 'Français';
+
+  function renderPage() {
+    document.getElementById('btn-lang').textContent = currentLang === 'fr' ? 'Română' : 'Français';
+    document.getElementById('btn-logout').textContent = t('logout');
+    renderWeekTabs();
+    loadData();
+  }
+
+  function renderWeekTabs() {
+    const container = document.getElementById('week-tabs');
+    container.innerHTML = availableWeeks.map((w, i) => {
+      const label = i === 0
+        ? (currentLang === 'fr' ? 'Semaine en cours' : 'Săptămâna curentă')
+        : (currentLang === 'fr' ? 'Semaine suivante' : 'Săptămâna viitoare');
+      return `<button class="week-tab ${i === selectedWeekIdx ? 'active' : ''}" onclick="selectWeek(${i})">${label}<br><small style="font-weight:400;font-size:0.72rem;">${getWeekLabel(w, currentLang)}</small></button>`;
+    }).join('');
+  }
+
+  function selectWeek(idx) {
+    selectedWeekIdx = idx;
+    renderWeekTabs();
+    loadData();
+  }
+
+  async function loadData() {
+    const monday = availableWeeks[selectedWeekIdx];
+    const days = getWeekDays(monday);
+    const dateList = days.map(d => formatDate(d));
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    allNavettes = await getNavettesForDates(dateList);
+    const ids = allNavettes.map(n => n.id);
+    allReservations = await getReservationsForNavettes(ids);
+    myReservations = allReservations.filter(r => r.user_id === currentUser.id);
+
+    renderGrid(days, today);
+    renderMyReservations();
+  }
+
+  function renderGrid(days, today) {
+    const grid = document.getElementById('navettes-grid');
+
+    const html = days.map(day => {
+      const dateStr = formatDate(day);
+      const isPast = day < today;
+      const dayName = day.toLocaleDateString(currentLang === 'ro' ? 'ro-RO' : 'fr-FR', {weekday:'long', day:'2-digit', month:'2-digit'});
+      const dayNavettes = allNavettes.filter(n => n.jour_date === dateStr);
+
+      let cardsHtml = '';
+      if (!dayNavettes.length) {
+        cardsHtml = `<div class="no-navettes">${currentLang === 'fr' ? 'Pas de navette ce jour' : 'Fără navetă în această zi'}</div>`;
+      } else {
+        cardsHtml = `<div class="navette-cards">` + dayNavettes.map(nav => {
+          const resCount = allReservations.filter(r => r.navette_id === nav.id).length;
+          const available = nav.places_max - resCount;
+          const pct = (resCount / nav.places_max) * 100;
+          const myRes = myReservations.find(r => r.navette_id === nav.id);
+          const fillClass = pct >= 100 ? 'full' : pct >= 75 ? 'near' : '';
+
+          let btnHtml = '';
+          if (isPast) {
+            btnHtml = `<button class="nav-btn past" disabled>${currentLang === 'fr' ? 'Passé' : 'Trecut'}</button>`;
+          } else if (myRes) {
+            btnHtml = `<button class="nav-btn reserved" onclick="askCancel('${myRes.id}','${nav.nom}','${nav.horaire}')">✓ ${currentLang === 'fr' ? 'Réservé — Annuler' : 'Rezervat — Anulați'}</button>`;
+          } else if (available <= 0) {
+            btnHtml = `<button class="nav-btn full-btn" disabled>${currentLang === 'fr' ? 'Complet' : 'Complet'}</button>`;
+          } else {
+            btnHtml = `<button class="nav-btn reserve" onclick="handleReserve('${nav.id}')">${currentLang === 'fr' ? 'Réserver' : 'Rezervați'}</button>`;
+          }
+
+          return `<div class="navette-card ${myRes ? 'reserved' : available <= 0 ? 'full' : ''}">
+            <div class="nav-header ${myRes ? 'reserved' : ''}">
+              <div class="nav-name">${nav.nom}</div>
+              <div class="nav-time">${nav.horaire}</div>
+            </div>
+            <div class="nav-body">
+              <div class="nav-bar"><div class="nav-bar-fill ${fillClass}" style="width:${pct}%"></div></div>
+              <div class="nav-places">${available} / ${nav.places_max} ${currentLang === 'fr' ? 'places' : 'locuri'}</div>
+              ${btnHtml}
+            </div>
+          </div>`;
+        }).join('') + `</div>`;
+      }
+
+      return `<div class="day-section"><div class="day-title">${dayName}</div>${cardsHtml}</div>`;
+    }).join('');
+
+    grid.innerHTML = html || `<p style="color:var(--gris);text-align:center;">Aucune navette cette semaine.</p>`;
+  }
+
+  function renderMyReservations() {
+    const container = document.getElementById('my-reservations');
+    if (!myReservations.length) {
+      container.innerHTML = `<p style="color:var(--gris);text-align:center;">${t('noReservations')}</p>`;
+      return;
+    }
+    container.innerHTML = myReservations.map(r => {
+      const nav = allNavettes.find(n => n.id === r.navette_id);
+      if (!nav) return '';
+      const day = new Date(nav.jour_date + 'T00:00:00');
+      const dayLabel = day.toLocaleDateString(currentLang === 'ro' ? 'ro-RO' : 'fr-FR', {weekday:'long', day:'2-digit', month:'2-digit'});
+      return `<div class="my-res-item">
+        <div>
+          <strong>${dayLabel}</strong>
+          <span style="margin-left:0.5rem;background:#dbeafe;color:#1e40af;padding:0.15rem 0.5rem;border-radius:99px;font-size:0.72rem;font-weight:600;">${nav.nom} — ${nav.horaire}</span>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="askCancel('${r.id}','${nav.nom}','${nav.horaire}')">Annuler</button>
+      </div>`;
+    }).join('');
+  }
+
+  async function handleReserve(navetteId) {
+    const result = await createReservation(navetteId, currentUser.id, 'user');
+    if (result.success) { showToast(t('reservedSuccess')); await loadData(); }
+    else if (result.error === 'full') showToast(t('shuttleFull'));
+    else if (result.error === 'already') showToast(t('alreadyReserved'));
+    else showToast(t('error'));
+  }
+
+  function askCancel(id, nom, horaire) {
+    cancelTargetId = id;
+    document.getElementById('modal-cancel-desc').textContent = `${nom} — ${horaire}`;
+    document.getElementById('modal-cancel').style.display = 'flex';
+    setTimeout(() => document.getElementById('modal-cancel').classList.add('visible'), 10);
+  }
+
+  async function confirmCancel() {
+    if (!cancelTargetId) return;
+    closeModal('cancel');
+    const result = await cancelReservation(cancelTargetId);
+    if (result.success) { showToast(t('cancelledSuccess')); await loadData(); }
+    else showToast(t('error'));
+  }
+
+  function closeModal(id) {
+    const el = document.getElementById(`modal-${id}`);
+    el.classList.remove('visible');
+    setTimeout(() => { el.style.display = 'none'; cancelTargetId = null; }, 220);
+  }
+
+  function showChangePassword() {
+    document.getElementById('input-new-pwd').value = '';
+    document.getElementById('input-confirm-pwd').value = '';
+    document.getElementById('pwd-alert').style.display = 'none';
+    document.getElementById('modal-pwd').style.display = 'flex';
+    setTimeout(() => document.getElementById('modal-pwd').classList.add('visible'), 10);
+  }
+
+  async function handleChangePassword() {
+    const newPwd = document.getElementById('input-new-pwd').value;
+    const confirmPwd = document.getElementById('input-confirm-pwd').value;
+    const alertEl = document.getElementById('pwd-alert');
+    if (!newPwd || newPwd.length < 4) {
+      alertEl.className = 'alert alert-error';
+      alertEl.textContent = 'Minimum 4 caractères.';
+      alertEl.style.display = 'flex'; return;
+    }
+    if (newPwd !== confirmPwd) {
+      alertEl.className = 'alert alert-error';
+      alertEl.textContent = 'Les mots de passe ne correspondent pas.';
+      alertEl.style.display = 'flex'; return;
+    }
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(newPwd));
+    const hash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    const { error } = await db.from('users').update({ password_hash: hash }).eq('id', currentUser.id);
+    if (error) {
+      alertEl.className = 'alert alert-error';
+      alertEl.textContent = 'Erreur.';
+      alertEl.style.display = 'flex';
+    } else {
+      closeModal('pwd');
+      showToast('Mot de passe changé avec succès !');
+    }
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.style.transform = 'translateX(-50%) translateY(80px)'; }, 3500);
+  }
+
+  db.channel('navettes-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'navettes' }, () => loadData())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => loadData())
+    .subscribe();
+
+  renderWeekTabs();
+  loadData();
+</script>
+</body>
+</html>
