@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion — Navette LFAdN</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+</head>
+<body>
+<div class="login-page">
+  <div style="position:absolute;top:1rem;right:1rem;z-index:10;">
+    <button class="btn btn-ghost" onclick="toggleLang()" id="btn-lang" style="background:rgba(255,255,255,0.15);color:white;border-color:rgba(255,255,255,0.3);">Română</button>
+  </div>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-logo">
+        <div style="display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:0.8rem;">
+          <img src="img/logo-lfadn.png" alt="LFAdN" style="height:72px;width:72px;object-fit:contain;">
+          <img src="img/logo-aefe.png" alt="AEFE" style="height:48px;object-fit:contain;">
+        </div>
+        <div class="login-title" id="login-title">Connexion</div>
+        <div class="login-subtitle" id="login-subtitle">Réservez votre place dans la navette</div>
+        <div style="font-size:0.75rem;color:var(--gris);margin-top:0.2rem;">Lycée Français Anna de Noailles — Bucarest</div>
+      </div>
+
+      <!-- Formulaire connexion -->
+      <div id="form-login">
+        <div id="alert-login" style="display:none;" class="alert alert-error"></div>
+        <div class="form-group">
+          <label class="form-label" id="label-username">Nom d'utilisateur</label>
+          <input type="text" class="form-input" id="input-username" placeholder="Entrez votre identifiant" autocomplete="username" autocapitalize="none">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="label-password">Mot de passe</label>
+          <input type="password" class="form-input" id="input-password" placeholder="Entrez votre mot de passe" autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary" id="btn-login" onclick="handleLogin()" style="width:100%;justify-content:center;padding:0.75rem;">Se connecter</button>
+        <div style="text-align:center;margin-top:1rem;">
+          <button onclick="showForgot()" style="background:none;border:none;color:var(--gris);font-size:0.82rem;cursor:pointer;text-decoration:underline;" id="btn-forgot">Mot de passe oublié ?</button>
+        </div>
+      </div>
+
+      <!-- Formulaire mot de passe oublié -->
+      <div id="form-forgot" style="display:none;">
+        <div id="alert-forgot" style="display:none;" class="alert"></div>
+        <p style="color:var(--gris);font-size:0.88rem;margin-bottom:1rem;">Entrez votre identifiant — un email avec un mot de passe temporaire vous sera envoyé.</p>
+        <div class="form-group">
+          <label class="form-label">Nom d'utilisateur</label>
+          <input type="text" class="form-input" id="input-forgot-username" placeholder="Entrez votre identifiant" autocapitalize="none">
+        </div>
+        <button class="btn btn-primary" id="btn-reset" onclick="handleReset()" style="width:100%;justify-content:center;padding:0.75rem;">Envoyer le mot de passe</button>
+        <div style="text-align:center;margin-top:1rem;">
+          <button onclick="showLogin()" style="background:none;border:none;color:var(--gris);font-size:0.82rem;cursor:pointer;text-decoration:underline;">Retour à la connexion</button>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:1.2rem;font-size:0.78rem;color:var(--gris);">Lycée Français Anna de Noailles — Bucarest · Service navette</div>
+    </div>
+  </div>
+  <div class="footer" style="color:rgba(255,255,255,0.4);">&copy; 2025 Lycée Français Anna de Noailles — Bucarest</div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/translations.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  const existingUser = getCurrentUser();
+  if (existingUser) window.location.href = existingUser.role === 'admin' ? 'admin.html' : 'dashboard.html';
+
+  function renderPage() {
+    document.getElementById('login-title').textContent = t('loginTitle');
+    document.getElementById('login-subtitle').textContent = t('loginSubtitle');
+    document.getElementById('label-username').textContent = t('username');
+    document.getElementById('label-password').textContent = t('password');
+    document.getElementById('btn-login').textContent = t('loginButton');
+    document.getElementById('btn-lang').textContent = t('langSwitch');
+    document.getElementById('btn-forgot').textContent = currentLang === 'ro' ? 'Ați uitat parola ?' : 'Mot de passe oublié ?';
+  }
+  renderPage();
+
+  function showForgot() {
+    document.getElementById('form-login').style.display = 'none';
+    document.getElementById('form-forgot').style.display = 'block';
+  }
+  function showLogin() {
+    document.getElementById('form-forgot').style.display = 'none';
+    document.getElementById('form-login').style.display = 'block';
+  }
+
+  document.getElementById('input-password').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+  document.getElementById('input-username').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('input-password').focus(); });
+
+  async function handleLogin() {
+    const username = document.getElementById('input-username').value.trim();
+    const password = document.getElementById('input-password').value;
+    const btn = document.getElementById('btn-login');
+    const alertEl = document.getElementById('alert-login');
+    if (!username || !password) return;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+    alertEl.style.display = 'none';
+    const result = await login(username, password);
+    if (result.success) {
+      window.location.href = result.user.role === 'admin' ? 'admin.html' : 'dashboard.html';
+    } else {
+      alertEl.textContent = t('loginError');
+      alertEl.style.display = 'flex';
+      btn.disabled = false;
+      btn.textContent = t('loginButton');
+      document.getElementById('input-password').value = '';
+    }
+  }
+
+  async function handleReset() {
+    const username = document.getElementById('input-forgot-username').value.trim();
+    const btn = document.getElementById('btn-reset');
+    const alertEl = document.getElementById('alert-forgot');
+    if (!username) return;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+    alertEl.style.display = 'none';
+    const result = await resetPasswordByEmail(username);
+    if (result.success) {
+      alertEl.className = 'alert alert-success';
+      alertEl.textContent = 'Email envoyé ! Vérifiez votre boîte mail.';
+      alertEl.style.display = 'flex';
+      btn.textContent = 'Email envoyé !';
+    } else if (result.error === 'not_found') {
+      alertEl.className = 'alert alert-error';
+      alertEl.textContent = 'Identifiant introuvable.';
+      alertEl.style.display = 'flex';
+      btn.disabled = false;
+      btn.textContent = 'Envoyer le mot de passe';
+    } else {
+      alertEl.className = 'alert alert-error';
+      alertEl.textContent = "Erreur. Contactez l'administrateur.";
+      alertEl.style.display = 'flex';
+      btn.disabled = false;
+      btn.textContent = 'Envoyer le mot de passe';
+    }
+  }
+</script>
+</body>
+</html>

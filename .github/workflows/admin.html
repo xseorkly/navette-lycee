@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administration — Navette LFAdN</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .navette-admin-card{background:white;border-radius:10px;box-shadow:var(--ombre);margin-bottom:0.75rem;overflow:hidden}
+    .nac-header{background:var(--bleu);color:white;padding:0.6rem 1rem;display:flex;align-items:center;justify-content:space-between}
+    .nac-name{font-weight:600;font-size:0.9rem}
+    .nac-time{font-size:0.78rem;opacity:0.8}
+    .nac-body{padding:0.75rem 1rem}
+    .nac-places{font-size:0.82rem;color:var(--gris);margin-bottom:0.5rem}
+    .nac-actions{display:flex;gap:0.5rem;flex-wrap:wrap}
+    .passenger-list{margin-top:0.5rem}
+    .passenger-item{display:flex;align-items:center;justify-content:space-between;padding:0.35rem 0;border-bottom:1px solid var(--gris-clair);font-size:0.82rem}
+    .passenger-item:last-child{border-bottom:none}
+    .day-admin-section{margin-bottom:2rem}
+    .day-admin-title{font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:var(--bleu);margin-bottom:0.75rem;padding-bottom:0.4rem;border-bottom:2px solid var(--gris-clair);display:flex;align-items:center;justify-content:space-between}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-brand">
+    <img src="img/logo-lfadn.png" alt="LFAdN" style="height:38px;width:38px;object-fit:contain;border-radius:4px;">
+    <div>
+      <div class="header-title">Navette du Personnel</div>
+      <div class="header-subtitle">Administration — LFAdN Bucarest</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="toggleLang()" id="btn-lang">Română</button>
+    <a href="dashboard.html" class="btn btn-ghost" style="font-size:0.82rem;">← Dashboard</a>
+    <button class="btn btn-ghost" onclick="logout()">Déconnexion</button>
+  </div>
+</header>
+
+<main class="main-content" style="max-width:1100px;">
+
+  <h1 style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:600;color:var(--bleu);margin-bottom:1.5rem;">Administration</h1>
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div class="card" style="margin:0;"><div class="card-body" style="text-align:center;padding:1.2rem;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:600;color:var(--bleu);" id="stat-users">—</div>
+      <div style="font-size:0.8rem;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Utilisateurs</div>
+    </div></div>
+    <div class="card" style="margin:0;"><div class="card-body" style="text-align:center;padding:1.2rem;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:600;color:var(--vert);" id="stat-navettes">—</div>
+      <div style="font-size:0.8rem;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Navettes cette semaine</div>
+    </div></div>
+    <div class="card" style="margin:0;"><div class="card-body" style="text-align:center;padding:1.2rem;">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:2.5rem;font-weight:600;color:var(--or);" id="stat-res">—</div>
+      <div style="font-size:0.8rem;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Réservations</div>
+    </div></div>
+  </div>
+
+  <!-- Onglets -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('navettes')" id="tab-navettes">Navettes</button>
+    <button class="tab" onclick="showTab('users')" id="tab-users">Utilisateurs</button>
+    <button class="tab" onclick="showTab('import')" id="tab-import">Import Excel</button>
+  </div>
+
+  <!-- Onglet Navettes -->
+  <div id="panel-navettes">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Gérer les navettes par semaine</span>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <select id="select-week" class="form-input" style="padding:0.4rem 0.8rem;font-size:0.85rem;width:auto;" onchange="loadNavettesAdmin()"></select>
+          <button class="btn btn-outline btn-sm" onclick="exportWeek()">Exporter CSV</button>
+        </div>
+      </div>
+      <div class="card-body" id="navettes-admin-content">Chargement...</div>
+    </div>
+  </div>
+
+  <!-- Onglet Utilisateurs -->
+  <div id="panel-users" style="display:none;">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Gestion des utilisateurs</span>
+        <button class="btn btn-gold btn-sm" onclick="showAddUserModal()">+ Ajouter</button>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nom complet</th><th>Identifiant</th><th>Email</th><th>Rôle</th><th>Actions</th></tr></thead>
+            <tbody id="users-table-body"><tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--gris);">Chargement...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Onglet Import -->
+  <div id="panel-import" style="display:none;">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Importer les utilisateurs (Excel)</span></div>
+      <div class="card-body">
+        <div class="alert alert-info" style="margin-bottom:1.2rem;">
+          Colonnes requises : <strong>nom_utilisateur</strong>, <strong>mot_de_passe</strong>, <strong>nom_complet</strong>, <strong>email</strong>
+          <br><small>Colonne optionnelle : <em>role</em> (personnel / admin)</small>
+        </div>
+        <div class="import-zone" id="import-zone" onclick="document.getElementById('file-input').click()">
+          <input type="file" id="file-input" accept=".xlsx,.xls" onchange="handleFileSelect(event)">
+          <div class="import-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="var(--bleu)"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM12 18l-4-4h2.5v-4h3v4H16l-4 4z"/></svg></div>
+          <p style="font-weight:500;color:var(--bleu);margin-bottom:0.3rem;">Cliquez pour sélectionner un fichier Excel</p>
+          <p style="font-size:0.8rem;color:var(--gris);">.xlsx ou .xls</p>
+        </div>
+        <div id="import-alert" style="display:none;margin-top:1rem;"></div>
+        <div class="card" style="margin-top:1rem;">
+          <div class="card-header">
+            <span class="card-title">Modèle Excel</span>
+            <button class="btn btn-outline btn-sm" onclick="downloadTemplate()">Télécharger</button>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap"><table>
+              <thead><tr><th>nom_utilisateur</th><th>mot_de_passe</th><th>nom_complet</th><th>email</th><th>role</th></tr></thead>
+              <tbody>
+                <tr><td>dupont.marie</td><td>mdp123</td><td>Marie Dupont</td><td>marie@lfadn.ro</td><td>personnel</td></tr>
+                <tr><td>admin.chef</td><td>adminpass</td><td>Chef Admin</td><td>admin@lfadn.ro</td><td>admin</td></tr>
+              </tbody>
+            </table></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Modal : Créer navette -->
+<div class="modal-overlay" id="modal-navette" style="display:none;">
+  <div class="modal">
+    <div class="modal-title" id="modal-navette-title">Nouvelle navette</div>
+    <div class="form-group" style="margin-top:0.5rem;">
+      <label class="form-label">Nom de la navette</label>
+      <input type="text" class="form-input" id="nav-nom" placeholder="Ex: Bus du matin">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Horaire</label>
+      <input type="text" class="form-input" id="nav-horaire" placeholder="Ex: 7h30">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nombre de places</label>
+      <input type="number" class="form-input" id="nav-places" value="19" min="1" max="100">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input type="date" class="form-input" id="nav-date">
+    </div>
+    <div id="navette-alert" style="display:none;" class="alert alert-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('navette')">Annuler</button>
+      <button class="btn btn-primary btn-sm" onclick="handleSaveNavette()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Attribuer utilisateur -->
+<div class="modal-overlay" id="modal-assign" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">Attribuer un passager</div>
+    <p style="font-size:0.88rem;color:var(--gris);margin-bottom:1rem;" id="assign-navette-label"></p>
+    <div class="form-group">
+      <label class="form-label">Sélectionner un utilisateur</label>
+      <select class="form-input" id="select-user-assign"></select>
+    </div>
+    <div id="assign-alert" style="display:none;" class="alert alert-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('assign')">Annuler</button>
+      <button class="btn btn-primary btn-sm" onclick="handleAssignUser()">Attribuer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Supprimer navette -->
+<div class="modal-overlay" id="modal-del-navette" style="display:none;">
+  <div class="modal">
+    <div class="modal-title" style="color:var(--rouge);">Supprimer cette navette ?</div>
+    <p style="color:var(--gris);font-size:0.9rem;">Toutes les réservations associées seront supprimées.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('del-navette')">Annuler</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmDeleteNavette()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Ajouter utilisateur -->
+<div class="modal-overlay" id="modal-add-user" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">Ajouter un utilisateur</div>
+    <div class="form-group" style="margin-top:0.5rem;">
+      <label class="form-label">Nom complet</label>
+      <input type="text" class="form-input" id="new-fullname" placeholder="Marie Dupont">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Identifiant</label>
+      <input type="text" class="form-input" id="new-username" placeholder="dupont.marie">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" class="form-input" id="new-email" placeholder="marie@lfadn.ro">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Mot de passe</label>
+      <input type="password" class="form-input" id="new-password">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Rôle</label>
+      <select class="form-input" id="new-role">
+        <option value="personnel">Personnel</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div id="add-user-alert" style="display:none;" class="alert alert-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('add-user')">Annuler</button>
+      <button class="btn btn-primary btn-sm" onclick="handleAddUser()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Supprimer utilisateur -->
+<div class="modal-overlay" id="modal-del-user" style="display:none;">
+  <div class="modal">
+    <div class="modal-title" style="color:var(--rouge);">Supprimer cet utilisateur ?</div>
+    <p style="color:var(--gris);font-size:0.9rem;">Action irréversible. Toutes ses réservations seront supprimées.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('del-user')">Annuler</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmDeleteUser()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" style="position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bleu);color:white;padding:0.75rem 1.5rem;border-radius:99px;font-size:0.88rem;font-weight:500;z-index:300;transition:transform 0.3s ease;box-shadow:0 4px 20px rgba(0,0,0,0.2);pointer-events:none;white-space:nowrap;"></div>
+
+<div class="footer">&copy; 2025 Lycée Français Anna de Noailles — Bucarest</div>
+
+<script src="js/config.js"></script>
+<script src="js/translations.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/reservations.js"></script>
+<script src="js/import.js"></script>
+<script>
+  let currentUser = requireAuth(true);
+  let allUsers = [];
+  let editNavetteId = null;
+  let deleteNavetteId = null;
+  let deleteUserId = null;
+  let assignNavetteId = null;
+  let currentNavettes = [];
+  let currentReservations = [];
+
+  async function init() {
+    populateWeekSelect();
+    await loadStats();
+    await loadNavettesAdmin();
+  }
+
+  function populateWeekSelect() {
+    const sel = document.getElementById('select-week');
+    const weeks = [];
+    const now = getCurrentWeekMonday();
+    for (let i = -1; i <= 4; i++) {
+      const d = new Date(now);
+      d.setDate(now.getDate() + i * 7);
+      weeks.push(d);
+    }
+    sel.innerHTML = weeks.map((w, i) => {
+      const friday = new Date(w); friday.setDate(w.getDate() + 4);
+      const label = w.toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit'}) + ' — ' + friday.toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit'});
+      return `<option value="${formatDate(w)}" ${i === 1 ? 'selected' : ''}>${label}</option>`;
+    }).join('');
+  }
+
+  async function loadStats() {
+    const { data: users } = await db.from('users').select('id');
+    const monday = getCurrentWeekMonday();
+    const friday = new Date(monday); friday.setDate(monday.getDate() + 4);
+    const days = getWeekDays(monday).map(d => formatDate(d));
+    const navettes = await getNavettesForDates(days);
+    const ids = navettes.map(n => n.id);
+    const res = await getReservationsForNavettes(ids);
+    document.getElementById('stat-users').textContent = users?.length || 0;
+    document.getElementById('stat-navettes').textContent = navettes.length;
+    document.getElementById('stat-res').textContent = res.length;
+    allUsers = await getAllUsers();
+  }
+
+  async function loadNavettesAdmin() {
+    const mondayStr = document.getElementById('select-week').value;
+    const monday = new Date(mondayStr + 'T00:00:00');
+    const days = getWeekDays(monday);
+    const dateList = days.map(d => formatDate(d));
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    currentNavettes = await getNavettesForDates(dateList);
+    const ids = currentNavettes.map(n => n.id);
+    currentReservations = await getReservationsForNavettes(ids);
+
+    const container = document.getElementById('navettes-admin-content');
+
+    let html = days.map(day => {
+      const dateStr = formatDate(day);
+      const dayName = day.toLocaleDateString('fr-FR', {weekday:'long', day:'2-digit', month:'long'});
+      const dayNavettes = currentNavettes.filter(n => n.jour_date === dateStr);
+
+      const navetteCards = dayNavettes.map(nav => {
+        const res = currentReservations.filter(r => r.navette_id === nav.id);
+        const available = nav.places_max - res.length;
+        const passengerList = res.map(r => `
+          <div class="passenger-item">
+            <div>
+              <strong>${r.users?.full_name || '—'}</strong>
+              <span style="font-size:0.72rem;color:var(--gris);margin-left:0.4rem;">${r.created_by === 'admin' ? '(admin)' : ''}</span>
+            </div>
+            <button class="btn btn-danger btn-sm" style="padding:0.2rem 0.6rem;font-size:0.72rem;" onclick="handleRemovePassenger('${r.id}')">Retirer</button>
+          </div>`).join('');
+
+        return `<div class="navette-admin-card">
+          <div class="nac-header">
+            <div><div class="nac-name">${nav.nom}</div><div class="nac-time">${nav.horaire}</div></div>
+            <div style="display:flex;gap:0.4rem;">
+              <button class="btn btn-ghost btn-sm" style="padding:0.2rem 0.6rem;font-size:0.72rem;" onclick="showEditNavette('${nav.id}')">Modifier</button>
+              <button class="btn btn-danger btn-sm" style="padding:0.2rem 0.6rem;font-size:0.72rem;" onclick="askDeleteNavette('${nav.id}')">Supprimer</button>
+            </div>
+          </div>
+          <div class="nac-body">
+            <div class="nac-places">${res.length} / ${nav.places_max} places — ${available} disponible(s)</div>
+            <div class="passenger-list">${passengerList || '<p style="color:var(--gris);font-size:0.82rem;">Aucun passager</p>'}</div>
+            ${available > 0 ? `<button class="btn btn-outline btn-sm" style="margin-top:0.5rem;width:100%;" onclick="showAssignUser('${nav.id}','${nav.nom} — ${nav.horaire}')">+ Attribuer un passager</button>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+
+      return `<div class="day-admin-section">
+        <div class="day-admin-title">
+          <span>${dayName}</span>
+          <button class="btn btn-gold btn-sm" onclick="showNewNavette('${dateStr}')">+ Navette</button>
+        </div>
+        ${navetteCards || '<p style="color:var(--gris);font-size:0.88rem;font-style:italic;">Pas de navette — cliquez + pour en ajouter</p>'}
+      </div>`;
+    }).join('');
+
+    container.innerHTML = html;
+  }
+
+  // ---- Navettes ----
+  function showNewNavette(dateStr) {
+    editNavetteId = null;
+    document.getElementById('modal-navette-title').textContent = 'Nouvelle navette';
+    document.getElementById('nav-nom').value = '';
+    document.getElementById('nav-horaire').value = '';
+    document.getElementById('nav-places').value = '19';
+    document.getElementById('nav-date').value = dateStr;
+    document.getElementById('navette-alert').style.display = 'none';
+    document.getElementById('modal-navette').style.display = 'flex';
+    setTimeout(() => document.getElementById('modal-navette').classList.add('visible'), 10);
+  }
+
+  function showEditNavette(id) {
+    const nav = currentNavettes.find(n => n.id === id);
+    if (!nav) return;
+    editNavetteId = id;
+    document.getElementById('modal-navette-title').textContent = 'Modifier la navette';
+    document.getElementById('nav-nom').value = nav.nom;
+    document.getElementById('nav-horaire').value = nav.horaire;
+    document.getElementById('nav-places').value = nav.places_max;
+    document.getElementById('nav-date').value = nav.jour_date;
+    document.getElementById('navette-alert').style.display = 'none';
+    document.getElementById('modal-navette').style.display = 'flex';
+    setTimeout(() => document.getElementById('modal-navette').classList.add('visible'), 10);
+  }
+
+  async function handleSaveNavette() {
+    const nom = document.getElementById('nav-nom').value.trim();
+    const horaire = document.getElementById('nav-horaire').value.trim();
+    const places = parseInt(document.getElementById('nav-places').value);
+    const date = document.getElementById('nav-date').value;
+    if (!nom || !horaire || !places || !date) {
+      document.getElementById('navette-alert').textContent = 'Tous les champs sont obligatoires.';
+      document.getElementById('navette-alert').style.display = 'flex'; return;
+    }
+    let ok;
+    if (editNavetteId) {
+      ok = await updateNavette(editNavetteId, nom, horaire, places);
+    } else {
+      ok = await createNavette(date, nom, horaire, places);
+    }
+    if (ok) {
+      closeModal('navette');
+      showToast(editNavetteId ? 'Navette modifiée !' : 'Navette créée !');
+      await loadNavettesAdmin();
+      await loadStats();
+    } else {
+      document.getElementById('navette-alert').textContent = 'Erreur.';
+      document.getElementById('navette-alert').style.display = 'flex';
+    }
+  }
+
+  function askDeleteNavette(id) {
+    deleteNavetteId = id;
+    document.getElementById('modal-del-navette').style.display = 'flex';
+    setTimeout(() => document.getElementById('modal-del-navette').classList.add('visible'), 10);
+  }
+
+  async function confirmDeleteNavette() {
+    if (!deleteNavetteId) return;
+    closeModal('del-navette');
+    const ok = await deleteNavette(deleteNavetteId);
+    if (ok) { showToast('Navette supprimée.'); await loadNavettesAdmin(); await loadStats(); }
+    else showToast('Erreur.');
+    deleteNavetteId = null;
+  }
+
+  // ---- Attribuer passager ----
+  function showAssignUser(navetteId, label) {
+    assignNavetteId = navetteId;
+    document.getElementById('assign-navette-label').textContent = label;
+    document.getElementById('assign-alert').style.display = 'none';
+    const nav = currentNavettes.find(n => n.id === navetteId);
+    const alreadyIds = currentReservations.filter(r => r.navette_id === navetteId).map(r => r.user_id);
+    const available = allUsers.filter(u => !alreadyIds.includes(u.id));
+    document.getElementById('select-user-assign').innerHTML = available.length
+      ? available.map(u => `<option value="${u.id}">${u.full_name} (${u.username})</option>`).join('')
+      : '<option>Tous les utilisateurs sont déjà inscrits</option>';
+    document.getElementById('modal-assign').style.display = 'flex';
+    setTimeout(() => document.getElementById('modal-assign').classList.add('visible'), 10);
+  }
+
+  async function handleAssignUser() {
+    const userId = document.getElementById('select-user-assign').value;
+    if (!userId || !assignNavetteId) return;
+    const result = await assignUserToNavette(assignNavetteId, userId);
+    if (result.success) {
+      closeModal('assign');
+      showToast('Passager attribué !');
+      await loadNavettesAdmin();
+      await loadStats();
+    } else {
+      document.getElementById('assign-alert').textContent = result.error === 'full' ? 'Navette complète.' : 'Erreur.';
+      document.getElementById('assign-alert').style.display = 'flex';
+    }
+  }
+
+  async function handleRemovePassenger(reservationId) {
+    const ok = await cancelReservation(reservationId);
+    if (ok) { showToast('Passager retiré.'); await loadNavettesAdmin(); await loadStats(); }
+    else showToast('Erreur.');
+  }
+
+  // ---- Utilisateurs ----
+  async function loadUsersTable() {
+    allUsers = await getAllUsers();
+    const tbody = document.getElementById('users-table-body');
+    if (!allUsers.length) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--gris);">Aucun utilisateur</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = allUsers.map(u => `<tr>
+      <td><strong>${u.full_name}</strong></td>
+      <td style="font-family:monospace;font-size:0.85rem;">${u.username}</td>
+      <td style="color:var(--gris);font-size:0.85rem;">${u.email}</td>
+      <td><span class="badge badge-${u.role}">${u.role}</span></td>
+      <td><button class="btn btn-danger btn-sm" onclick="askDeleteUser('${u.id}')">Supprimer</button></td>
+    </tr>`).join('');
+  }
+
+  function showAddUserModal() {
+    ['new-fullname','new-username','new-email','new-password'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('add-user-alert').style.display = 'none';
+    document.getElementById('modal-add-user').style.display = 'flex';
+    setTimeout(() => document.getElementById('modal-add-user').classList.add('visible'), 10);
+  }
+
+  async function handleAddUser() {
+    const fullname = document.getElementById('new-fullname').value.trim();
+    const username = document.getElementById('new-username').value.trim();
+    const email = document.getElementById('new-email').value.trim();
+    const password = document.getElementById('new-password').value;
+    const role = document.getElementById('new-role').value;
+    if (!fullname || !username || !email || !password) {
+      document.getElementById('add-user-alert').textContent = 'Tous les champs sont obligatoires.';
+      document.getElementById('add-user-alert').style.display = 'flex'; return;
+    }
+    const ok = await addUser(username, password, fullname, email, role);
+    if (ok) { closeModal('add-user'); showToast('Utilisateur ajouté !'); await loadUsersTable(); await loadStats(); }
+    else { document.getElementById('add-user-alert').textContent = 'Erreur — identifiant déjà utilisé ?'; document.getElementById('add-user-alert').style.display = 'flex'; }
+  }
+
+  function askDeleteUser(id) {
+    deleteUserId = id;
+    document.getElementById('modal-del-user').style.display = 'flex';
+    setTimeout(() => document.getElementById('modal-del-user').classList.add('visible'), 10);
+  }
+
+  async function confirmDeleteUser() {
+    if (!deleteUserId) return;
+    closeModal('del-user');
+    const { error } = await db.from('users').delete().eq('id', deleteUserId);
+    if (!error) { showToast('Utilisateur supprimé.'); await loadUsersTable(); await loadStats(); }
+    else showToast('Erreur.');
+    deleteUserId = null;
+  }
+
+  // ---- Import Excel ----
+  async function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    document.getElementById('import-zone').innerHTML = `<div style="text-align:center;padding:1rem;"><span class="spinner" style="border-color:var(--gris);border-top-color:var(--bleu);"></span></div>`;
+    try {
+      const result = await importUsersFromExcel(file);
+      const alertEl = document.getElementById('import-alert');
+      if (result.success) {
+        alertEl.className = 'alert alert-success';
+        alertEl.textContent = `✓ ${result.count} utilisateurs importés.`;
+        alertEl.style.display = 'flex';
+        await loadStats();
+      } else {
+        alertEl.className = 'alert alert-error';
+        alertEl.textContent = result.error === 'missing_columns' ? `Colonnes manquantes : ${result.missing.join(', ')}` : 'Erreur.';
+        alertEl.style.display = 'flex';
+      }
+    } catch(e) {
+      document.getElementById('import-alert').className = 'alert alert-error';
+      document.getElementById('import-alert').textContent = 'Erreur de lecture.';
+      document.getElementById('import-alert').style.display = 'flex';
+    }
+    document.getElementById('import-zone').innerHTML = `<input type="file" id="file-input" accept=".xlsx,.xls" onchange="handleFileSelect(event)"><div class="import-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="var(--bleu)"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM12 18l-4-4h2.5v-4h3v4H16l-4 4z"/></svg></div><p style="font-weight:500;color:var(--bleu);margin-bottom:0.3rem;">Cliquez pour sélectionner</p><p style="font-size:0.8rem;color:var(--gris);">.xlsx ou .xls</p>`;
+  }
+
+  function downloadTemplate() {
+    const ws = XLSX.utils.aoa_to_sheet([
+      ['nom_utilisateur','mot_de_passe','nom_complet','email','role'],
+      ['dupont.marie','mdp123','Marie Dupont','marie@lfadn.ro','personnel'],
+      ['martin.jean','mdp456','Jean Martin','jean@lfadn.ro','personnel'],
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Utilisateurs');
+    XLSX.writeFile(wb, 'modele-utilisateurs.xlsx');
+  }
+
+  async function exportWeek() {
+    const mondayStr = document.getElementById('select-week').value;
+    const monday = new Date(mondayStr + 'T00:00:00');
+    const days = getWeekDays(monday).map(d => formatDate(d));
+    await exportCSV(days);
+  }
+
+  // ---- Utilitaires ----
+  function showTab(name) {
+    ['navettes','users','import'].forEach(t => {
+      document.getElementById(`panel-${t}`).style.display = t === name ? '' : 'none';
+      document.getElementById(`tab-${t}`).classList.toggle('active', t === name);
+    });
+    if (name === 'users') loadUsersTable();
+  }
+
+  function closeModal(id) {
+    const el = document.getElementById(`modal-${id}`);
+    el.classList.remove('visible');
+    setTimeout(() => { el.style.display = 'none'; }, 220);
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.style.transform = 'translateX(-50%) translateY(80px)'; }, 3500);
+  }
+
+  function renderPage() {
+    document.getElementById('btn-lang').textContent = currentLang === 'fr' ? 'Română' : 'Français';
+  }
+
+  init();
+</script>
+</body>
+</html>
