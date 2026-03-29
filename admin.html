@@ -71,8 +71,9 @@
     <div class="card">
       <div class="card-header">
         <span class="card-title">Gérer les navettes par semaine</span>
-        <div style="display:flex;gap:0.5rem;align-items:center;">
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
           <select id="select-week" class="form-input" style="padding:0.4rem 0.8rem;font-size:0.85rem;width:auto;" onchange="loadNavettesAdmin()"></select>
+          <button class="btn btn-gold btn-sm" onclick="createDefaultNavettes()">Créer semaine type</button>
           <button class="btn btn-outline btn-sm" onclick="exportWeek()">Exporter CSV</button>
         </div>
       </div>
@@ -268,9 +269,10 @@
     const sel = document.getElementById('select-week');
     const weeks = [];
     const now = getCurrentWeekMonday();
-    for (let i = -1; i <= 4; i++) {
+    for (let i = -1; i <= 6; i++) {
       const d = new Date(now);
       d.setDate(now.getDate() + i * 7);
+      d.setHours(12, 0, 0, 0);
       weeks.push(d);
     }
     sel.innerHTML = weeks.map((w, i) => {
@@ -296,7 +298,7 @@
 
   async function loadNavettesAdmin() {
     const mondayStr = document.getElementById('select-week').value;
-    const monday = new Date(mondayStr + 'T00:00:00');
+    const monday = new Date(mondayStr + 'T12:00:00');
     const days = getWeekDays(monday);
     const dateList = days.map(d => formatDate(d));
     const today = new Date(); today.setHours(0,0,0,0);
@@ -580,6 +582,29 @@
 
   function renderPage() {
     document.getElementById('btn-lang').textContent = currentLang === 'fr' ? 'Română' : 'Français';
+  }
+
+  // Créer navettes par défaut pour toute la semaine
+  async function createDefaultNavettes() {
+    const mondayStr = document.getElementById('select-week').value;
+    const monday = new Date(mondayStr + 'T12:00:00');
+    const days = getWeekDays(monday);
+    const today = new Date(); today.setHours(0,0,0,0);
+    let created = 0;
+    for (const day of days) {
+      const dateStr = formatDate(day);
+      const existing = currentNavettes.filter(n => n.jour_date === dateStr);
+      for (const navDef of NAVETTES_DEFAUT) {
+        const alreadyExists = existing.some(n => n.nom === navDef.nom && n.horaire === navDef.horaire);
+        if (!alreadyExists) {
+          const ok = await createNavette(dateStr, navDef.nom, navDef.horaire, navDef.places_max);
+          if (ok) created++;
+        }
+      }
+    }
+    showToast(`${created} navette(s) créée(s) !`);
+    await loadNavettesAdmin();
+    await loadStats();
   }
 
   init();
