@@ -72,7 +72,33 @@
       <div class="card-header">
         <span class="card-title">Gérer les navettes par semaine</span>
         <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-          <select id="select-week" class="form-input" style="padding:0.4rem 0.8rem;font-size:0.85rem;width:auto;" onchange="loadNavettesAdmin()"></select>
+          <div style="position:relative;">
+            <button class="btn btn-outline btn-sm" onclick="toggleCalendar()" id="btn-cal" style="min-width:200px;justify-content:space-between;display:flex;align-items:center;gap:0.5rem;">
+              <span id="cal-label">Semaine en cours</span>
+              <span>▼</span>
+            </button>
+            <div id="cal-popup" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:white;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.15);z-index:200;width:320px;padding:1rem;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                <button onclick="calPrevMonth()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:var(--bleu);padding:0 0.5rem;">&#8249;</button>
+                <span id="cal-month-title" style="font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:600;color:var(--bleu);"></span>
+                <button onclick="calNextMonth()" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:var(--bleu);padding:0 0.5rem;">&#8250;</button>
+              </div>
+              <div id="cal-year" style="text-align:center;margin-bottom:0.5rem;font-size:0.8rem;color:var(--gris);"></div>
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:0.5rem;">
+                <div style="text-align:center;font-size:0.72rem;color:var(--gris);font-weight:600;">L</div>
+                <div style="text-align:center;font-size:0.72rem;color:var(--gris);font-weight:600;">M</div>
+                <div style="text-align:center;font-size:0.72rem;color:var(--gris);font-weight:600;">M</div>
+                <div style="text-align:center;font-size:0.72rem;color:var(--gris);font-weight:600;">J</div>
+                <div style="text-align:center;font-size:0.72rem;color:var(--gris);font-weight:600;">V</div>
+                <div style="text-align:center;font-size:0.72rem;color:var(--gris);font-weight:600;">S</div>
+                <div style="text-align:center;font-size:0.72rem;color:var(--gris);font-weight:600;">D</div>
+              </div>
+              <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;"></div>
+              <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--gris-clair);text-align:center;">
+                <button onclick="goToCurrentWeek()" style="background:none;border:none;cursor:pointer;font-size:0.8rem;color:var(--bleu);text-decoration:underline;">Aujourd'hui</button>
+              </div>
+            </div>
+          </div>
           <button class="btn btn-gold btn-sm" onclick="createDefaultNavettes()">Créer semaine type</button>
           <button class="btn btn-outline btn-sm" onclick="exportWeek()">Exporter CSV</button>
         </div>
@@ -290,27 +316,111 @@
     await loadNavettesAdmin();
   }
 
-  function populateWeekSelect() {
-    const sel = document.getElementById('select-week');
-    const weeks = [];
-    const now = getCurrentWeekMonday();
-    // 3 ans en arrière (≈156 semaines) + 5 ans en avant (≈260 semaines)
-    for (let i = -156; i <= 260; i++) {
-      const d = new Date(now);
-      d.setDate(now.getDate() + i * 7);
-      d.setHours(12, 0, 0, 0);
-      weeks.push({ date: d, idx: i });
+  // ---- Calendrier ----
+  let calYear = new Date().getFullYear();
+  let calMonth = new Date().getMonth();
+  let selectedWeekMonday = getCurrentWeekMonday();
+
+  function formatDate2(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  }
+
+  function getWeekMondayFromDate(date) {
+    const d = new Date(date);
+    d.setHours(12, 0, 0, 0);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    return d;
+  }
+
+  function toggleCalendar() {
+    const popup = document.getElementById('cal-popup');
+    if (popup.style.display === 'none') {
+      popup.style.display = 'block';
+      renderCalendar();
+    } else {
+      popup.style.display = 'none';
     }
-    sel.innerHTML = weeks.map(({ date: w, idx: i }) => {
-      const sunday = new Date(w); sunday.setDate(w.getDate() + 6);
-      const year = w.getFullYear();
-      const monthStart = w.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'});
-      const monthEnd = sunday.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'});
-      const label = `${monthStart} — ${monthEnd} ${year}`;
-      return `<option value="${formatDate(w)}" ${i === 0 ? 'selected' : ''}>${label}</option>`;
-    }).join('');
-    // Scroller automatiquement sur la semaine en cours
-    sel.value = formatDate(now);
+  }
+
+  function calPrevMonth() {
+    calMonth--;
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+    renderCalendar();
+  }
+
+  function calNextMonth() {
+    calMonth++;
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    renderCalendar();
+  }
+
+  function renderCalendar() {
+    const months = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    document.getElementById('cal-month-title').textContent = months[calMonth];
+    document.getElementById('cal-year').textContent = calYear;
+
+    const firstDay = new Date(calYear, calMonth, 1);
+    let startDay = firstDay.getDay();
+    if (startDay === 0) startDay = 7;
+
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const selectedStr = formatDate2(selectedWeekMonday);
+
+    let html = '';
+    // Empty cells before first day
+    for (let i = 1; i < startDay; i++) {
+      html += '<div></div>';
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(calYear, calMonth, d, 12, 0, 0);
+      const monday = getWeekMondayFromDate(date);
+      const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+      const mondayStr = formatDate2(monday);
+      const isSelected = mondayStr === selectedStr;
+      const isInSelectedWeek = date >= monday && date <= sunday;
+      const isToday = formatDate2(date) === formatDate2(new Date());
+
+      const bg = isInSelectedWeek ? (isSelected || isInSelectedWeek ? '#1a3560' : '#dbeafe') : 'transparent';
+      const color = isInSelectedWeek ? 'white' : (isToday ? 'var(--bleu)' : 'var(--texte)');
+      const fw = isToday ? '700' : '400';
+      const br = d === 1 || date.getDay() === 1 ? '6px 0 0 6px' : (date.getDay() === 0 || d === daysInMonth ? '0 6px 6px 0' : '0');
+
+      html += `<div onclick="selectWeekFromDate('${formatDate2(date)}')" style="text-align:center;padding:4px 2px;cursor:pointer;background:${isInSelectedWeek ? 'var(--bleu)' : 'transparent'};color:${color};font-weight:${fw};border-radius:${br};font-size:0.82rem;transition:background 0.15s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">${d}</div>`;
+    }
+
+    document.getElementById('cal-grid').innerHTML = html;
+  }
+
+  function selectWeekFromDate(dateStr) {
+    const date = new Date(dateStr + 'T12:00:00');
+    selectedWeekMonday = getWeekMondayFromDate(date);
+    const sunday = new Date(selectedWeekMonday); sunday.setDate(selectedWeekMonday.getDate() + 6);
+    const label = selectedWeekMonday.toLocaleDateString('fr-FR', {day:'2-digit',month:'short'}) + ' — ' + sunday.toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric'});
+    document.getElementById('cal-label').textContent = label;
+    document.getElementById('cal-popup').style.display = 'none';
+    renderCalendar();
+    loadNavettesAdmin();
+  }
+
+  function goToCurrentWeek() {
+    const now = new Date();
+    calYear = now.getFullYear();
+    calMonth = now.getMonth();
+    selectWeekFromDate(formatDate2(now));
+  }
+
+  function getSelectedWeekStr() {
+    return formatDate2(selectedWeekMonday);
+  }
+
+  function populateWeekSelect() {
+    goToCurrentWeek();
   }
 
   async function loadStats() {
@@ -321,8 +431,8 @@
   }
 
   async function updateNavetteStat() {
-    const mondayStr = document.getElementById('select-week').value;
-    const monday = new Date((mondayStr || formatDate(getCurrentWeekMonday())) + 'T12:00:00');
+    const mondayStr = typeof getSelectedWeekStr === 'function' ? getSelectedWeekStr() : formatDate(getCurrentWeekMonday());
+    const monday = new Date(mondayStr + 'T12:00:00');
     const days = getFullWeekDays ? getFullWeekDays(monday) : getWeekDays(monday);
     const dateList = days.map(d => formatDate(d));
     const navettes = await getNavettesForDates(dateList);
@@ -344,7 +454,7 @@
   }
 
   async function loadNavettesAdmin() {
-    const mondayStr = document.getElementById('select-week').value;
+    const mondayStr = getSelectedWeekStr();
     const monday = new Date(mondayStr + 'T12:00:00');
     const days = getFullWeekDays(monday);
     const dateList = days.map(d => formatDate(d));
@@ -682,7 +792,7 @@
 
   // Créer navettes par défaut pour toute la semaine
   async function createDefaultNavettes() {
-    const mondayStr = document.getElementById('select-week').value;
+    const mondayStr = getSelectedWeekStr();
     const monday = new Date(mondayStr + 'T12:00:00');
     const days = getFullWeekDays(monday);
     const today = new Date(); today.setHours(0,0,0,0);
@@ -702,6 +812,15 @@
     await loadNavettesAdmin();
     await loadStats();
   }
+
+  // Fermer calendrier au clic extérieur
+  document.addEventListener('click', function(e) {
+    const popup = document.getElementById('cal-popup');
+    const btn = document.getElementById('btn-cal');
+    if (popup && btn && !popup.contains(e.target) && !btn.contains(e.target)) {
+      popup.style.display = 'none';
+    }
+  });
 
   init();
 </script>
