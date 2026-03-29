@@ -240,6 +240,31 @@
   </div>
 </div>
 
+<!-- Modal réinitialisation mot de passe -->
+<div class="modal-overlay" id="modal-reset-pwd" style="display:none;">
+  <div class="modal">
+    <div class="modal-title">Réinitialisation du mot de passe</div>
+    <p style="color:var(--gris);font-size:0.9rem;" id="reset-pwd-user"></p>
+    <div id="reset-pwd-result" style="display:none;margin-top:1rem;">
+      <div class="alert alert-success" style="display:block;flex-direction:column;gap:0.4rem;">
+        <div>Nouveau mot de passe temporaire :</div>
+        <div style="font-family:monospace;font-size:1.1rem;font-weight:700;letter-spacing:0.08em;background:white;padding:0.5rem 0.75rem;border-radius:6px;margin-top:0.4rem;" id="reset-pwd-value"></div>
+        <div style="font-size:0.78rem;margin-top:0.3rem;">Communiquez ce mot de passe à l'utilisateur. Il pourra le changer après connexion.</div>
+      </div>
+    </div>
+    <div id="reset-pwd-loading" style="display:none;text-align:center;padding:1rem;color:var(--gris);">
+      <span class="spinner" style="border-color:var(--gris);border-top-color:var(--bleu);"></span>
+    </div>
+    <div class="modal-actions" id="reset-pwd-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('reset-pwd')">Annuler</button>
+      <button class="btn btn-primary btn-sm" id="btn-confirm-reset" onclick="confirmResetPassword()">Réinitialiser</button>
+    </div>
+    <div class="modal-actions" id="reset-pwd-done" style="display:none;">
+      <button class="btn btn-primary btn-sm" onclick="closeModal('reset-pwd')">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" style="position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(80px);background:var(--bleu);color:white;padding:0.75rem 1.5rem;border-radius:99px;font-size:0.88rem;font-weight:500;z-index:300;transition:transform 0.3s ease;box-shadow:0 4px 20px rgba(0,0,0,0.2);pointer-events:none;white-space:nowrap;"></div>
 
 <div class="footer">&copy; 2025 Lycée Français Anna de Noailles — Bucarest</div>
@@ -471,7 +496,10 @@
       <td style="font-family:monospace;font-size:0.85rem;">${u.username}</td>
       <td style="color:var(--gris);font-size:0.85rem;">${u.email}</td>
       <td><span class="badge badge-${u.role}">${u.role}</span></td>
-      <td><button class="btn btn-danger btn-sm" onclick="askDeleteUser('${u.id}')">Supprimer</button></td>
+      <td style="display:flex;gap:0.4rem;">
+        <button class="btn btn-outline btn-sm" onclick="resetUserPassword('${u.id}','${u.full_name.replace(/'/g,"\'")}','${u.username}')">Réinitialiser MDP</button>
+        <button class="btn btn-danger btn-sm" onclick="askDeleteUser('${u.id}')">Supprimer</button>
+      </td>
     </tr>`).join('');
   }
 
@@ -582,6 +610,51 @@
 
   function renderPage() {
     document.getElementById('btn-lang').textContent = currentLang === 'fr' ? 'Română' : 'Français';
+  }
+
+  // Réinitialisation mot de passe
+  let resetTargetId = null;
+  let resetTargetUsername = null;
+
+  function resetUserPassword(id, fullname, username) {
+    resetTargetId = id;
+    resetTargetUsername = username;
+    document.getElementById('reset-pwd-user').textContent = `Utilisateur : ${fullname} (${username})`;
+    document.getElementById('reset-pwd-result').style.display = 'none';
+    document.getElementById('reset-pwd-loading').style.display = 'none';
+    document.getElementById('reset-pwd-actions').style.display = 'flex';
+    document.getElementById('reset-pwd-done').style.display = 'none';
+    document.getElementById('modal-reset-pwd').style.display = 'flex';
+    setTimeout(() => document.getElementById('modal-reset-pwd').classList.add('visible'), 10);
+  }
+
+  async function confirmResetPassword() {
+    if (!resetTargetId) return;
+    document.getElementById('reset-pwd-loading').style.display = 'block';
+    document.getElementById('reset-pwd-actions').style.display = 'none';
+
+    // Générer mot de passe temporaire
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let tempPwd = '';
+    for (let i = 0; i < 8; i++) tempPwd += chars.charAt(Math.floor(Math.random() * chars.length));
+
+    // Hasher et sauvegarder
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(tempPwd));
+    const hash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    const { error } = await db.from('users').update({ password_hash: hash }).eq('id', resetTargetId);
+
+    document.getElementById('reset-pwd-loading').style.display = 'none';
+
+    if (error) {
+      showToast('Erreur lors de la réinitialisation.');
+      closeModal('reset-pwd');
+    } else {
+      document.getElementById('reset-pwd-value').textContent = tempPwd;
+      document.getElementById('reset-pwd-result').style.display = 'block';
+      document.getElementById('reset-pwd-done').style.display = 'flex';
+    }
+    resetTargetId = null;
   }
 
   // Créer navettes par défaut pour toute la semaine
