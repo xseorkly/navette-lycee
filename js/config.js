@@ -5,8 +5,19 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const DEFAULT_LANG = 'fr';
 
-const JOURS_FR = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
-const JOURS_RO = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri'];
+// Navettes par défaut créées automatiquement
+const NAVETTES_DEFAUT = [
+  { nom: 'Bus matin', horaire: '7h30', places_max: 19 },
+  { nom: 'Bus après-midi', horaire: '17h00', places_max: 19 }
+];
+
+// Formate une date en YYYY-MM-DD sans décalage UTC
+function formatDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 // Lundi de la semaine en cours
 function getCurrentWeekMonday() {
@@ -44,17 +55,14 @@ function getWeekDays(mondayDate) {
   for (let i = 0; i < 5; i++) {
     const d = new Date(mondayDate);
     d.setDate(mondayDate.getDate() + i);
+    d.setHours(12, 0, 0, 0); // Midi pour éviter décalage DST
     days.push(d);
   }
   return days;
 }
 
-function formatDate(date) {
-  return date.toISOString().split('T')[0];
-}
-
 function formatDateDisplay(dateStr, lang) {
-  const date = new Date(dateStr + 'T00:00:00');
+  const date = new Date(dateStr + 'T12:00:00');
   return date.toLocaleDateString(lang === 'ro' ? 'ro-RO' : 'fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 
