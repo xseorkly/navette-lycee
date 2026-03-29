@@ -5,9 +5,15 @@ async function getNavettesForDates(dateList) {
     .select('*')
     .in('jour_date', dateList)
     .order('jour_date', { ascending: true })
-    .order('horaire', { ascending: true });
+    .order('created_at', { ascending: true });
   if (error) { console.error(error); return []; }
-  return data || [];
+  // Tri par heure numérique (ex: 7h30 → 7.5, 17h00 → 17)
+  const sorted = (data || []).sort((a, b) => {
+    if (a.jour_date !== b.jour_date) return a.jour_date.localeCompare(b.jour_date);
+    const toNum = h => { const [hh, mm] = h.replace('h',':').split(':'); return parseInt(hh) + (parseInt(mm||0)/60); };
+    return toNum(a.horaire) - toNum(b.horaire);
+  });
+  return sorted;
 }
 
 // Récupère toutes les réservations pour une liste de navette IDs
