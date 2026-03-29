@@ -7,7 +7,7 @@ const DEFAULT_LANG = 'fr';
 
 // Navettes par défaut créées automatiquement
 const NAVETTES_DEFAUT = [
-  { nom: 'Bus matin', horaire: '7h30', places_max: 19 },
+  { nom: 'Bus matin', horaire: '07h30', places_max: 19 },
   { nom: 'Bus après-midi', horaire: '17h00', places_max: 19 }
 ];
 
