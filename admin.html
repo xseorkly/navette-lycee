@@ -469,7 +469,7 @@
     let html = days.map(day => {
       const dateStr = formatDate(day);
       const dayName = day.toLocaleDateString('fr-FR', {weekday:'long', day:'2-digit', month:'long'});
-      const dayNavettes = currentNavettes.filter(n => n.jour_date === dateStr);
+      const dayNavettes = currentNavettes.filter(n => n.jour_date === dateStr).sort((a, b) => a.horaire.localeCompare(b.horaire));
 
       const navetteCards = dayNavettes.map(nav => {
         const res = currentReservations.filter(r => r.navette_id === nav.id);
