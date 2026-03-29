@@ -794,7 +794,7 @@
   async function createDefaultNavettes() {
     const mondayStr = getSelectedWeekStr();
     const monday = new Date(mondayStr + 'T12:00:00');
-    const days = getFullWeekDays(monday);
+    const days = getWeekDays(monday);
     const today = new Date(); today.setHours(0,0,0,0);
     let created = 0;
     for (const day of days) {
