@@ -162,7 +162,7 @@
     const monday = availableWeeks[selectedWeekIdx];
     const days = getWeekDays(monday);
     const dateList = days.map(d => formatDate(d));
-    const today = new Date(); today.setHours(0,0,0,0);
+    const today = new Date(); today.setHours(12,0,0,0);
 
     allNavettes = await getNavettesForDates(dateList);
     const ids = allNavettes.map(n => n.id);
@@ -178,8 +178,9 @@
 
     const html = days.map(day => {
       const dateStr = formatDate(day);
-      const isPast = day < today;
-      const dayName = day.toLocaleDateString(currentLang === 'ro' ? 'ro-RO' : 'fr-FR', {weekday:'long', day:'2-digit', month:'2-digit'});
+      const todayStr = formatDate(new Date());
+      const isPast = formatDate(day) < todayStr;
+      const dayName = new Date(formatDate(day) + 'T12:00:00').toLocaleDateString(currentLang === 'ro' ? 'ro-RO' : 'fr-FR', {weekday:'long', day:'2-digit', month:'2-digit'});
       const dayNavettes = allNavettes.filter(n => n.jour_date === dateStr);
 
       let cardsHtml = '';
