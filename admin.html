@@ -294,37 +294,59 @@
     const sel = document.getElementById('select-week');
     const weeks = [];
     const now = getCurrentWeekMonday();
-    for (let i = -1; i <= 6; i++) {
+    // 3 ans en arrière (≈156 semaines) + 5 ans en avant (≈260 semaines)
+    for (let i = -156; i <= 260; i++) {
       const d = new Date(now);
       d.setDate(now.getDate() + i * 7);
       d.setHours(12, 0, 0, 0);
-      weeks.push(d);
+      weeks.push({ date: d, idx: i });
     }
-    sel.innerHTML = weeks.map((w, i) => {
-      const friday = new Date(w); friday.setDate(w.getDate() + 4);
-      const label = w.toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit'}) + ' — ' + friday.toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit'});
-      return `<option value="${formatDate(w)}" ${i === 1 ? 'selected' : ''}>${label}</option>`;
+    sel.innerHTML = weeks.map(({ date: w, idx: i }) => {
+      const sunday = new Date(w); sunday.setDate(w.getDate() + 6);
+      const year = w.getFullYear();
+      const monthStart = w.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'});
+      const monthEnd = sunday.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'});
+      const label = `${monthStart} — ${monthEnd} ${year}`;
+      return `<option value="${formatDate(w)}" ${i === 0 ? 'selected' : ''}>${label}</option>`;
     }).join('');
+    // Scroller automatiquement sur la semaine en cours
+    sel.value = formatDate(now);
   }
 
   async function loadStats() {
     const { data: users } = await db.from('users').select('id');
-    const monday = getCurrentWeekMonday();
-    const friday = new Date(monday); friday.setDate(monday.getDate() + 4);
-    const days = getWeekDays(monday).map(d => formatDate(d));
-    const navettes = await getNavettesForDates(days);
+    allUsers = await getAllUsers();
+    document.getElementById('stat-users').textContent = users?.length || 0;
+    await updateNavetteStat();
+  }
+
+  async function updateNavetteStat() {
+    const mondayStr = document.getElementById('select-week').value;
+    const monday = new Date((mondayStr || formatDate(getCurrentWeekMonday())) + 'T12:00:00');
+    const days = getFullWeekDays ? getFullWeekDays(monday) : getWeekDays(monday);
+    const dateList = days.map(d => formatDate(d));
+    const navettes = await getNavettesForDates(dateList);
     const ids = navettes.map(n => n.id);
     const res = await getReservationsForNavettes(ids);
-    document.getElementById('stat-users').textContent = users?.length || 0;
     document.getElementById('stat-navettes').textContent = navettes.length;
     document.getElementById('stat-res').textContent = res.length;
-    allUsers = await getAllUsers();
+  }
+
+  function getFullWeekDays(mondayDate) {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(mondayDate);
+      d.setDate(mondayDate.getDate() + i);
+      d.setHours(12, 0, 0, 0);
+      days.push(d);
+    }
+    return days;
   }
 
   async function loadNavettesAdmin() {
     const mondayStr = document.getElementById('select-week').value;
     const monday = new Date(mondayStr + 'T12:00:00');
-    const days = getWeekDays(monday);
+    const days = getFullWeekDays(monday);
     const dateList = days.map(d => formatDate(d));
     const today = new Date(); today.setHours(0,0,0,0);
 
@@ -377,6 +399,7 @@
     }).join('');
 
     container.innerHTML = html;
+    await updateNavetteStat();
   }
 
   // ---- Navettes ----
@@ -661,7 +684,7 @@
   async function createDefaultNavettes() {
     const mondayStr = document.getElementById('select-week').value;
     const monday = new Date(mondayStr + 'T12:00:00');
-    const days = getWeekDays(monday);
+    const days = getFullWeekDays(monday);
     const today = new Date(); today.setHours(0,0,0,0);
     let created = 0;
     for (const day of days) {
